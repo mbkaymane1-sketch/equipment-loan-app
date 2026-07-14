@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
 import Login from './components/Login'
+import Dashboard from './components/Dashboard'
 import Items from './components/Items'
 import Clients from './components/Clients'
-import Loans from './components/Loans'
+import Suppliers from './components/Suppliers'
+import Purchases from './components/Purchases'
+import Orders from './components/Orders'
 import './App.css'
 
 const TABS = {
-  loans: { label: 'Locations', component: Loans },
+  dashboard: { label: 'Tableau de bord', component: Dashboard },
+  orders: { label: 'Commandes', component: Orders },
   clients: { label: 'Clients', component: Clients },
   items: { label: 'Matériel', component: Items },
+  purchases: { label: 'Achats', component: Purchases },
+  suppliers: { label: 'Fournisseurs', component: Suppliers },
 }
 
 function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('loans')
+  const [tab, setTab] = useState('dashboard')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {

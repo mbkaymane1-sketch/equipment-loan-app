@@ -4,7 +4,16 @@ Petite app pour suivre le matériel de construction prêté/loué à des clients
 
 - **Backend / base de données**: [Supabase](https://supabase.com) (Postgres géré + API REST auto-générée + authentification). Free tier.
 - **Frontend**: React (Vite), dans `frontend/`. Déployé gratuitement sur [Vercel](https://vercel.com).
-- **Tables**: `items` (matériel), `clients`, `commandeclient` (locations, relie un client à un article).
+- **Tables**: `items` (matériel, avec stock suivi automatiquement), `clients`, `suppliers` (fournisseurs), `achats` (entrées de stock), `commandes` + `commande_lignes` (commandes clients multi-articles).
+
+### Fonctionnement du stock
+
+Le stock (`items.stock_actuel`) est mis à jour automatiquement par des triggers dans la base — pas de code frontend à maintenir pour ça :
+- Un **achat** enregistré ajoute la quantité au stock.
+- La création d'une **ligne de commande** retire la quantité du stock, et **refuse la commande si le stock est insuffisant**.
+- Cliquer **"Marquer retourné"** sur une ligne remet la quantité en stock.
+- Le statut d'une commande (`en_cours` / `retourné`) se met à jour automatiquement selon l'état de ses lignes.
+- Le tableau de bord signale les articles sous le seuil d'alerte et les commandes en retard (date de fin prévue dépassée sans retour).
 
 Coût total pour un usage single-user: **0 €/mois** (tant que tu restes dans les limites gratuites de Supabase et Vercel, largement suffisantes ici).
 
@@ -16,9 +25,10 @@ Coût total pour un usage single-user: **0 €/mois** (tant que tu restes dans l
 2. Clique **New project**. Choisis un nom, un mot de passe pour la base (garde-le de côté), et une région proche de toi.
 3. Attends ~2 minutes que le projet soit prêt.
 4. Dans le menu de gauche, va sur **SQL Editor** → **New query**.
-5. Colle tout le contenu du fichier [`supabase/schema.sql`](supabase/schema.sql) de ce dossier et clique **Run**. Ça crée les 3 tables et sécurise l'accès (seul un utilisateur connecté peut lire/écrire).
-6. Va sur **Authentication** → **Users** → **Add user** → **Create new user**. Mets ton email et un mot de passe: ce sera ton compte de connexion à l'appli (il n'y a pas de page d'inscription publique, c'est volontaire pour une app à un seul utilisateur).
-7. Va sur **Project Settings** (icône engrenage) → **API**. Note les deux valeurs suivantes, tu en auras besoin juste après:
+5. Colle tout le contenu du fichier [`supabase/schema.sql`](supabase/schema.sql) de ce dossier et clique **Run**. Ça crée les tables de base et sécurise l'accès (seul un utilisateur connecté peut lire/écrire).
+6. Nouvelle requête, colle cette fois tout le contenu de [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) et clique **Run**. Ça ajoute fournisseurs, achats, le suivi de stock automatique, et transforme les commandes en commandes multi-articles (si tu avais déjà des données dans `commandeclient`, elles sont migrées automatiquement et l'ancienne table est renommée `commandeclient_legacy` en backup, pas supprimée).
+7. Va sur **Authentication** → **Users** → **Add user** → **Create new user**. Mets ton email et un mot de passe: ce sera ton compte de connexion à l'appli (il n'y a pas de page d'inscription publique, c'est volontaire pour une app à un seul utilisateur).
+8. Va sur **Project Settings** (icône engrenage) → **API**. Note les deux valeurs suivantes, tu en auras besoin juste après:
    - **Project URL**
    - **anon public** key
 
@@ -47,7 +57,7 @@ npm install
 npm run dev
 ```
 
-Ouvre l'URL affichée (en général http://localhost:5173), connecte-toi avec l'email/mot de passe créé à l'étape 1.6, et teste l'ajout de matériel, clients et locations.
+Ouvre l'URL affichée (en général http://localhost:5173), connecte-toi avec l'email/mot de passe créé à l'étape 1.7, et teste l'ajout de matériel, clients, fournisseurs, achats et commandes.
 
 ---
 
@@ -73,10 +83,15 @@ L'idée: le frontend est juste des fichiers statiques (HTML/JS/CSS) qui parlent 
 
 Chaque `git push` sur la branche principale redéploiera automatiquement.
 
+### Mettre à jour l'app déjà déployée (comme maintenant)
+
+1. Exécute [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) dans le SQL Editor de ton projet Supabase (une seule fois).
+2. Commit et push le code du dossier `frontend/` sur ton repo GitHub — Vercel redéploiera automatiquement en ~1 minute.
+
 ---
 
 ## Notes
 
 - La clé "anon" Supabase est publique par design (elle finit dans le code JS envoyé au navigateur) — c'est pour ça que le schéma active la Row Level Security: seules les requêtes d'un utilisateur connecté (celui créé à l'étape 1.6) sont acceptées.
-- Pour ajouter un deuxième utilisateur plus tard, répète l'étape 1.6 dans Supabase (Authentication → Users → Add user).
+- Pour ajouter un deuxième utilisateur plus tard, répète l'étape 1.7 dans Supabase (Authentication → Users → Add user).
 - Limites du plan gratuit Supabase: 500 Mo de base de données, projet mis en pause après 1 semaine d'inactivité (il suffit de le "réveiller" en te reconnectant sur le dashboard). Largement suffisant pour cet usage.

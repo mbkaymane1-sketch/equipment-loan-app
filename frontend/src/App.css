@@ -213,6 +213,21 @@ button.primary {
   font-size: 14px;
 }
 
+.logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-preview img {
+  max-width: 160px;
+  max-height: 80px;
+  object-fit: contain;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 4px;
+}
+
 /* ─── Invoice overlay / print ───────────────────────────────────────── */
 .invoice-overlay {
   position: fixed;
@@ -247,6 +262,18 @@ button.primary {
   border-bottom: 2px solid #1a1a1a;
   padding-bottom: 16px;
   margin-bottom: 16px;
+}
+
+.invoice-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.invoice-logo {
+  max-width: 100px;
+  max-height: 100px;
+  object-fit: contain;
 }
 
 .invoice-letterhead h1 {

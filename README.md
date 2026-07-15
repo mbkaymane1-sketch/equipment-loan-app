@@ -22,9 +22,12 @@ Chaque article a un **coût moyen pondéré** (`items.cout_moyen`), recalculé a
 ### Facturation
 
 Depuis l'onglet **Commandes**, le bouton **"Générer facture"** crée une facture reprenant les articles/quantités/prix de la commande, avec un numéro séquentiel auto-généré (`FACT-2026-0001`). L'onglet **Factures** permet de:
-- Voir/imprimer une facture (mise en page avec l'en-tête de ton entreprise, à configurer une fois dans **Paramètres**) — utilise l'impression du navigateur ("Enregistrer en PDF") donc aucune dépendance ni coût supplémentaire.
+- Voir/imprimer une facture (mise en page avec le logo et l'en-tête de ton entreprise, à configurer une fois dans **Paramètres**) — utilise l'impression du navigateur ("Enregistrer en PDF") donc aucune dépendance ni coût supplémentaire.
+- La facture affiche automatiquement la durée de la location (dates de début/fin de la commande liée).
 - Suivre le statut de paiement (impayée / partielle / payée) et le mode de paiement.
 - Le taux de TVA est modifiable par facture (0%, 20%, etc.).
+
+Le logo est uploadé depuis **Paramètres** (redimensionné automatiquement et stocké directement en base — pas besoin de configurer un bucket de stockage à part).
 
 Les commandes retournées en retard sont signalées en rouge dans le détail de la commande et lors de la génération de facture — la pénalité (si tu en factures une) s'ajoute manuellement, il n'y a pas de calcul automatique.
 
@@ -103,7 +106,7 @@ Chaque `git push` sur la branche principale redéploiera automatiquement.
 
 ### Mettre à jour l'app déjà déployée (comme maintenant)
 
-1. Exécute [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) puis [`supabase/migration_003_valuation_and_invoicing.sql`](supabase/migration_003_valuation_and_invoicing.sql) dans le SQL Editor de ton projet Supabase (une seule fois chacune, dans cet ordre).
+1. Exécute [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql), puis [`supabase/migration_003_valuation_and_invoicing.sql`](supabase/migration_003_valuation_and_invoicing.sql), puis [`supabase/migration_004_logo.sql`](supabase/migration_004_logo.sql) dans le SQL Editor de ton projet Supabase (une seule fois chacune, dans cet ordre).
 2. Va dans l'onglet **Paramètres** de l'appli et remplis les informations de ton entreprise (elles apparaîtront sur tes factures).
 3. Commit et push le code du dossier `frontend/` sur ton repo GitHub — Vercel redéploiera automatiquement en ~1 minute.
 

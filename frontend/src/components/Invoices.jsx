@@ -17,7 +17,7 @@ export default function Invoices() {
   async function load() {
     const { data, error } = await supabase
       .from('factures')
-      .select('*, clients(clientname, adresse, contact), facture_lignes(*)')
+      .select('*, clients(clientname, adresse, contact), facture_lignes(*), commandes(date_debut, date_fin_prevue)')
       .order('id', { ascending: false })
     if (error) setError(error.message)
     else setInvoices(data)

@@ -19,6 +19,13 @@ export default function InvoiceView({ invoice, onClose }) {
   const tva = ht * (invoice.taux_tva / 100)
   const ttc = ht + tva
 
+  const commande = invoice.commandes
+  let dureeJours = null
+  if (commande?.date_debut && commande?.date_fin_prevue) {
+    const ms = new Date(commande.date_fin_prevue) - new Date(commande.date_debut)
+    dureeJours = Math.round(ms / 86400000) + 1
+  }
+
   return createPortal(
     <div className="invoice-overlay">
       <div className="invoice-toolbar no-print">
@@ -27,12 +34,15 @@ export default function InvoiceView({ invoice, onClose }) {
       </div>
       <div className="invoice-paper">
         <header className="invoice-letterhead">
-          <div>
-            <h1>{entreprise?.nom_entreprise || 'Votre entreprise'}</h1>
-            {entreprise?.adresse && <p>{entreprise.adresse}</p>}
-            {entreprise?.ice && <p>ICE: {entreprise.ice}</p>}
-            {entreprise?.telephone && <p>Tél: {entreprise.telephone}</p>}
-            {entreprise?.email && <p>{entreprise.email}</p>}
+          <div className="invoice-brand">
+            {entreprise?.logo_url && <img className="invoice-logo" src={entreprise.logo_url} alt="Logo" />}
+            <div>
+              <h1>{entreprise?.nom_entreprise || 'Votre entreprise'}</h1>
+              {entreprise?.adresse && <p>{entreprise.adresse}</p>}
+              {entreprise?.ice && <p>ICE: {entreprise.ice}</p>}
+              {entreprise?.telephone && <p>Tél: {entreprise.telephone}</p>}
+              {entreprise?.email && <p>{entreprise.email}</p>}
+            </div>
           </div>
           <div className="invoice-meta">
             <h2>Facture {invoice.numero}</h2>
@@ -46,6 +56,16 @@ export default function InvoiceView({ invoice, onClose }) {
           {invoice.clients?.adresse && <p>{invoice.clients.adresse}</p>}
           {invoice.clients?.contact && <p>{invoice.clients.contact}</p>}
         </section>
+
+        {commande?.date_debut && (
+          <section className="invoice-client">
+            <h3>Durée de la location</h3>
+            <p>
+              Du {commande.date_debut} au {commande.date_fin_prevue ?? '—'}
+              {dureeJours != null && ` (${dureeJours} jour${dureeJours > 1 ? 's' : ''})`}
+            </p>
+          </section>
+        )}
 
         <table className="invoice-lines">
           <thead>

@@ -21,6 +21,29 @@ export default function Settings() {
     setSaved(false)
   }
 
+  function handleLogoFile(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    setError(null)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        // Downscale so the logo doesn't bloat the parametres row / invoice HTML.
+        const maxWidth = 320
+        const scale = Math.min(1, maxWidth / img.width)
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        update('logo_url', canvas.toDataURL('image/png', 0.85))
+      }
+      img.src = ev.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+
   async function handleSave(e) {
     e.preventDefault()
     setError(null)
@@ -33,6 +56,7 @@ export default function Settings() {
         telephone: form.telephone,
         email: form.email,
         taux_tva_defaut: form.taux_tva_defaut,
+        logo_url: form.logo_url,
       })
       .eq('id', 1)
     if (error) setError(error.message)
@@ -46,6 +70,16 @@ export default function Settings() {
       <h2>Paramètres de l'entreprise</h2>
       <p className="hint">Ces informations apparaissent sur l'en-tête des factures.</p>
       <form className="settings-form" onSubmit={handleSave}>
+        <label>
+          Logo
+          <input type="file" accept="image/*" onChange={handleLogoFile} />
+        </label>
+        {form.logo_url && (
+          <div className="logo-preview">
+            <img src={form.logo_url} alt="Logo" />
+            <button type="button" onClick={() => update('logo_url', null)}>Retirer le logo</button>
+          </div>
+        )}
         <label>
           Nom de l'entreprise
           <input

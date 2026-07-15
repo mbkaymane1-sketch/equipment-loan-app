@@ -11,6 +11,7 @@ export default function Orders() {
   const [items, setItems] = useState([])
   const [expanded, setExpanded] = useState(null)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
 
   const [idclients, setIdclients] = useState('')
   const [dateDebut, setDateDebut] = useState(today())
@@ -124,6 +125,56 @@ export default function Orders() {
     }
   }
 
+  async function handleGenerateInvoice(order) {
+    setError(null)
+    setNotice(null)
+    const lines = order.commande_lignes ?? []
+    if (lines.length === 0) {
+      setError('Cette commande n\'a aucun article, impossible de générer une facture.')
+      return
+    }
+
+    const { data: invoice, error: invoiceError } = await supabase
+      .from('factures')
+      .insert({ id_commande: order.id, idclients: order.idclients })
+      .select()
+      .single()
+
+    if (invoiceError) {
+      setError(invoiceError.message)
+      return
+    }
+
+    const { error: linesError } = await supabase.from('facture_lignes').insert(
+      lines.map((l) => ({
+        id_facture: invoice.id,
+        description: l.items?.description ?? 'Article',
+        qte: l.qte,
+        prix_unitaire: l.prix ?? 0,
+      }))
+    )
+
+    if (linesError) {
+      setError(linesError.message)
+      await supabase.from('factures').delete().eq('id', invoice.id)
+      return
+    }
+
+    const lateLines = lines.filter((l) => isLineLate(l, order))
+    setNotice(
+      `Facture ${invoice.numero} créée (onglet Factures).` +
+        (lateLines.length > 0
+          ? ` ⚠️ ${lateLines.length} article(s) en retard sur cette commande — pensez à ajouter une pénalité manuellement si besoin.`
+          : '')
+    )
+  }
+
+  function isLineLate(line, order) {
+    if (!order.date_fin_prevue) return false
+    const reference = line.date_retour_reelle ?? today()
+    return reference > order.date_fin_prevue
+  }
+
   function handleExport() {
     const rows = orders.flatMap((o) =>
       (o.commande_lignes ?? []).map((l) => ({ order: o, line: l }))
@@ -227,6 +278,7 @@ export default function Orders() {
       </form>
 
       {error && <p className="error">{error}</p>}
+      {notice && <p className="hint">{notice}</p>}
 
       <table>
         <thead>
@@ -261,6 +313,7 @@ export default function Orders() {
                   <td>{order.date_debut}</td>
                   <td>{order.date_fin_prevue ?? '—'}</td>
                   <td>
+                    <button onClick={() => handleGenerateInvoice(order)}>Générer facture</button>
                     <button onClick={() => handleDeleteOrder(order.id)}>Supprimer</button>
                   </td>
                 </tr>
@@ -278,21 +331,27 @@ export default function Orders() {
                           </tr>
                         </thead>
                         <tbody>
-                          {(order.commande_lignes ?? []).map((line) => (
-                            <tr key={line.id}>
-                              <td>{line.items?.description}</td>
-                              <td>{line.qte}</td>
-                              <td>{line.prix ?? '—'}</td>
-                              <td>{line.date_retour_reelle ?? '—'}</td>
-                              <td>
-                                {!line.date_retour_reelle && (
-                                  <button onClick={() => handleReturnLine(line.id)}>
-                                    Marquer retourné
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
+                          {(order.commande_lignes ?? []).map((line) => {
+                            const late = isLineLate(line, order)
+                            return (
+                              <tr key={line.id} className={late ? 'row-warning' : ''}>
+                                <td>{line.items?.description}</td>
+                                <td>{line.qte}</td>
+                                <td>{line.prix ?? '—'}</td>
+                                <td>
+                                  {line.date_retour_reelle ?? '—'}
+                                  {late && (line.date_retour_reelle ? ' ⚠️ retourné en retard' : ' ⚠️ en retard')}
+                                </td>
+                                <td>
+                                  {!line.date_retour_reelle && (
+                                    <button onClick={() => handleReturnLine(line.id)}>
+                                      Marquer retourné
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </td>

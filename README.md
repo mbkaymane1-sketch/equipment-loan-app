@@ -4,7 +4,7 @@ Petite app pour suivre le matériel de construction prêté/loué à des clients
 
 - **Backend / base de données**: [Supabase](https://supabase.com) (Postgres géré + API REST auto-générée + authentification). Free tier.
 - **Frontend**: React (Vite), dans `frontend/`. Déployé gratuitement sur [Vercel](https://vercel.com).
-- **Tables**: `items` (matériel, avec stock suivi automatiquement), `clients`, `suppliers` (fournisseurs), `achats` (entrées de stock), `commandes` + `commande_lignes` (commandes clients multi-articles).
+- **Tables**: `items` (matériel, avec stock et coût moyen suivis automatiquement), `clients`, `suppliers` (fournisseurs), `achats` (entrées de stock), `commandes` + `commande_lignes` (commandes clients multi-articles), `factures` + `facture_lignes` (facturation), `parametres` (en-tête entreprise pour les factures).
 
 ### Fonctionnement du stock
 
@@ -14,6 +14,23 @@ Le stock (`items.stock_actuel`) est mis à jour automatiquement par des triggers
 - Cliquer **"Marquer retourné"** sur une ligne remet la quantité en stock.
 - Le statut d'une commande (`en_cours` / `retourné`) se met à jour automatiquement selon l'état de ses lignes.
 - Le tableau de bord signale les articles sous le seuil d'alerte et les commandes en retard (date de fin prévue dépassée sans retour).
+
+### Valorisation du stock (CUMP)
+
+Chaque article a un **coût moyen pondéré** (`items.cout_moyen`), recalculé automatiquement à chaque achat selon la méthode CUMP standard: `nouveau_coût = (qté_possédée × ancien_coût + qté_achetée × prix_achat) / nouvelle_qté_possédée`. Le tableau de bord affiche la **valeur du stock disponible** (ce qui est dans l'entrepôt) et la **valeur totale du parc** (y compris ce qui est actuellement prêté — toujours ton actif, juste ailleurs).
+
+### Facturation
+
+Depuis l'onglet **Commandes**, le bouton **"Générer facture"** crée une facture reprenant les articles/quantités/prix de la commande, avec un numéro séquentiel auto-généré (`FACT-2026-0001`). L'onglet **Factures** permet de:
+- Voir/imprimer une facture (mise en page avec l'en-tête de ton entreprise, à configurer une fois dans **Paramètres**) — utilise l'impression du navigateur ("Enregistrer en PDF") donc aucune dépendance ni coût supplémentaire.
+- Suivre le statut de paiement (impayée / partielle / payée) et le mode de paiement.
+- Le taux de TVA est modifiable par facture (0%, 20%, etc.).
+
+Les commandes retournées en retard sont signalées en rouge dans le détail de la commande et lors de la génération de facture — la pénalité (si tu en factures une) s'ajoute manuellement, il n'y a pas de calcul automatique.
+
+### Rapports
+
+L'onglet **Rapports** agrège le chiffre d'affaires (HT) par mois, par client et par article à partir des factures émises. L'onglet **Clients** a une flèche dépliante par client montrant tout son historique (commandes + factures).
 
 Coût total pour un usage single-user: **0 €/mois** (tant que tu restes dans les limites gratuites de Supabase et Vercel, largement suffisantes ici).
 
@@ -27,8 +44,9 @@ Coût total pour un usage single-user: **0 €/mois** (tant que tu restes dans l
 4. Dans le menu de gauche, va sur **SQL Editor** → **New query**.
 5. Colle tout le contenu du fichier [`supabase/schema.sql`](supabase/schema.sql) de ce dossier et clique **Run**. Ça crée les tables de base et sécurise l'accès (seul un utilisateur connecté peut lire/écrire).
 6. Nouvelle requête, colle cette fois tout le contenu de [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) et clique **Run**. Ça ajoute fournisseurs, achats, le suivi de stock automatique, et transforme les commandes en commandes multi-articles (si tu avais déjà des données dans `commandeclient`, elles sont migrées automatiquement et l'ancienne table est renommée `commandeclient_legacy` en backup, pas supprimée).
-7. Va sur **Authentication** → **Users** → **Add user** → **Create new user**. Mets ton email et un mot de passe: ce sera ton compte de connexion à l'appli (il n'y a pas de page d'inscription publique, c'est volontaire pour une app à un seul utilisateur).
-8. Va sur **Project Settings** (icône engrenage) → **API**. Note les deux valeurs suivantes, tu en auras besoin juste après:
+7. Nouvelle requête, colle le contenu de [`supabase/migration_003_valuation_and_invoicing.sql`](supabase/migration_003_valuation_and_invoicing.sql) et clique **Run**. Ça ajoute le coût moyen pondéré (CUMP), la facturation, et une table `parametres` pour l'en-tête de tes factures.
+8. Va sur **Authentication** → **Users** → **Add user** → **Create new user**. Mets ton email et un mot de passe: ce sera ton compte de connexion à l'appli (il n'y a pas de page d'inscription publique, c'est volontaire pour une app à un seul utilisateur).
+9. Va sur **Project Settings** (icône engrenage) → **API**. Note les deux valeurs suivantes, tu en auras besoin juste après:
    - **Project URL**
    - **anon public** key
 
@@ -57,7 +75,7 @@ npm install
 npm run dev
 ```
 
-Ouvre l'URL affichée (en général http://localhost:5173), connecte-toi avec l'email/mot de passe créé à l'étape 1.7, et teste l'ajout de matériel, clients, fournisseurs, achats et commandes.
+Ouvre l'URL affichée (en général http://localhost:5173), connecte-toi avec l'email/mot de passe créé à l'étape 1.8, et teste l'ajout de matériel, clients, fournisseurs, achats et commandes.
 
 ---
 
@@ -85,13 +103,15 @@ Chaque `git push` sur la branche principale redéploiera automatiquement.
 
 ### Mettre à jour l'app déjà déployée (comme maintenant)
 
-1. Exécute [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) dans le SQL Editor de ton projet Supabase (une seule fois).
-2. Commit et push le code du dossier `frontend/` sur ton repo GitHub — Vercel redéploiera automatiquement en ~1 minute.
+1. Exécute [`supabase/migration_002_stock_and_orders.sql`](supabase/migration_002_stock_and_orders.sql) puis [`supabase/migration_003_valuation_and_invoicing.sql`](supabase/migration_003_valuation_and_invoicing.sql) dans le SQL Editor de ton projet Supabase (une seule fois chacune, dans cet ordre).
+2. Va dans l'onglet **Paramètres** de l'appli et remplis les informations de ton entreprise (elles apparaîtront sur tes factures).
+3. Commit et push le code du dossier `frontend/` sur ton repo GitHub — Vercel redéploiera automatiquement en ~1 minute.
 
 ---
 
 ## Notes
 
-- La clé "anon" Supabase est publique par design (elle finit dans le code JS envoyé au navigateur) — c'est pour ça que le schéma active la Row Level Security: seules les requêtes d'un utilisateur connecté (celui créé à l'étape 1.6) sont acceptées.
-- Pour ajouter un deuxième utilisateur plus tard, répète l'étape 1.7 dans Supabase (Authentication → Users → Add user).
+- La clé "anon" Supabase est publique par design (elle finit dans le code JS envoyé au navigateur) — c'est pour ça que le schéma active la Row Level Security: seules les requêtes d'un utilisateur connecté (celui créé à l'étape 1.8) sont acceptées.
+- Pour ajouter un deuxième utilisateur plus tard, répète l'étape 1.8 dans Supabase (Authentication → Users → Add user).
+- Le calcul du coût moyen pondéré (CUMP) se base sur l'historique des achats. Si tu supprimes ou modifies un ancien achat, le coût moyen recalculé est une approximation (pas un recalcul complet de tout l'historique) — largement suffisant en pratique, mais à savoir.
 - Limites du plan gratuit Supabase: 500 Mo de base de données, projet mis en pause après 1 semaine d'inactivité (il suffit de le "réveiller" en te reconnectant sur le dashboard). Largement suffisant pour cet usage.

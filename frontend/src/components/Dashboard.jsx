@@ -10,7 +10,10 @@ export default function Dashboard() {
 
   async function load() {
     const [itemsRes, ordersRes] = await Promise.all([
-      supabase.from('items').select('id, description, stock_actuel, seuil_alerte').order('description'),
+      supabase
+        .from('items')
+        .select('id, description, stock_actuel, seuil_alerte, qte_totale, cout_moyen')
+        .order('description'),
       supabase
         .from('commandes')
         .select('id, date_fin_prevue, clients(clientname)')
@@ -28,6 +31,8 @@ export default function Dashboard() {
 
   const lowStock = items.filter((i) => i.seuil_alerte != null && i.stock_actuel <= i.seuil_alerte)
   const overdue = activeOrders.filter((o) => o.date_fin_prevue && o.date_fin_prevue < today())
+  const valeurDisponible = items.reduce((sum, i) => sum + i.stock_actuel * i.cout_moyen, 0)
+  const valeurTotaleParc = items.reduce((sum, i) => sum + i.qte_totale * i.cout_moyen, 0)
 
   return (
     <div className="dashboard">
@@ -36,7 +41,15 @@ export default function Dashboard() {
       <div className="stat-cards">
         <div className="stat-card">
           <span className="stat-value">{items.reduce((sum, i) => sum + i.stock_actuel, 0)}</span>
-          <span className="stat-label">Unités en stock (total)</span>
+          <span className="stat-label">Unités disponibles (total)</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{valeurDisponible.toFixed(2)}</span>
+          <span className="stat-label">Valeur du stock disponible (coût moyen)</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-value">{valeurTotaleParc.toFixed(2)}</span>
+          <span className="stat-label">Valeur totale du parc (dont prêté)</span>
         </div>
         <div className="stat-card">
           <span className="stat-value">{activeOrders.length}</span>
@@ -58,7 +71,10 @@ export default function Dashboard() {
           <thead>
             <tr>
               <th>Article</th>
-              <th>Stock actuel</th>
+              <th>Stock disponible</th>
+              <th>Qté totale possédée</th>
+              <th>Coût moyen</th>
+              <th>Valeur (disponible)</th>
               <th>Seuil d'alerte</th>
             </tr>
           </thead>
@@ -69,6 +85,9 @@ export default function Dashboard() {
                 <tr key={item.id} className={low ? 'row-warning' : ''}>
                   <td>{item.description}</td>
                   <td>{item.stock_actuel}{low && ' ⚠️'}</td>
+                  <td>{item.qte_totale}</td>
+                  <td>{item.cout_moyen.toFixed(2)}</td>
+                  <td>{(item.stock_actuel * item.cout_moyen).toFixed(2)}</td>
                   <td>{item.seuil_alerte ?? '—'}</td>
                 </tr>
               )

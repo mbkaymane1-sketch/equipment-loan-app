@@ -7,15 +7,21 @@ import Clients from './components/Clients'
 import Suppliers from './components/Suppliers'
 import Purchases from './components/Purchases'
 import Orders from './components/Orders'
+import Invoices from './components/Invoices'
+import Reports from './components/Reports'
+import Settings from './components/Settings'
 import './App.css'
 
 const TABS = {
   dashboard: { label: 'Tableau de bord', component: Dashboard },
   orders: { label: 'Commandes', component: Orders },
+  invoices: { label: 'Factures', component: Invoices },
+  reports: { label: 'Rapports', component: Reports },
   clients: { label: 'Clients', component: Clients },
   items: { label: 'Matériel', component: Items },
   purchases: { label: 'Achats', component: Purchases },
   suppliers: { label: 'Fournisseurs', component: Suppliers },
+  settings: { label: 'Paramètres', component: Settings },
 }
 
 function App() {

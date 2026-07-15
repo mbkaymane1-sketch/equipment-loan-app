@@ -165,6 +165,17 @@ main {
   margin: 4px 0;
 }
 
+.client-history {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.client-history h4 {
+  margin: 0 0 4px;
+}
+
 button.primary {
   align-self: flex-start;
   background: #1a1a1a;
@@ -172,6 +183,160 @@ button.primary {
   border: none;
   padding: 8px 16px;
   border-radius: 4px;
+}
+
+.hint {
+  color: #666;
+  font-size: 13px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+  margin-top: 16px;
+}
+
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #444;
+}
+
+.settings-form input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* ─── Invoice overlay / print ───────────────────────────────────────── */
+.invoice-overlay {
+  position: fixed;
+  inset: 0;
+  background: #666;
+  z-index: 1000;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+}
+
+.invoice-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.invoice-paper {
+  background: #fff;
+  width: 100%;
+  max-width: 720px;
+  padding: 40px;
+  border-radius: 4px;
+}
+
+.invoice-letterhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #1a1a1a;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.invoice-letterhead h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.invoice-letterhead p {
+  margin: 2px 0;
+  font-size: 12px;
+  color: #555;
+}
+
+.invoice-meta {
+  text-align: right;
+}
+
+.invoice-client {
+  margin-bottom: 16px;
+}
+
+.invoice-client h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.invoice-lines {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+}
+
+.invoice-lines th,
+.invoice-lines td {
+  border-bottom: 1px solid #eee;
+  padding: 8px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.invoice-totals {
+  margin-left: auto;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invoice-totals div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.invoice-ttc {
+  border-top: 1px solid #333;
+  padding-top: 6px;
+  font-weight: 600;
+  font-size: 16px !important;
+}
+
+.invoice-payment-status {
+  margin-top: 24px;
+  font-size: 13px;
+}
+
+.invoice-notes {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+}
+
+@media print {
+  #root {
+    display: none;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .invoice-overlay {
+    position: static;
+    background: none;
+    padding: 0;
+  }
+  .invoice-paper {
+    max-width: none;
+    padding: 0;
+  }
 }
 
 .inline-form {
